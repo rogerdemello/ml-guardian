@@ -18,7 +18,8 @@ if (-not (Test-Path ".env")) {
 }
 
 # Open the dashboard once the server is up.
-Start-Job { Start-Sleep 3; Start-Process "http://localhost:$using:Port" } | Out-Null
+$url = "http://localhost:$Port"
+Start-Job { Start-Sleep 3; Start-Process $using:url } | Out-Null
 
 Write-Host "`nML Guardian running at http://localhost:$Port  (Ctrl+C to stop)`n"
 & .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port $Port

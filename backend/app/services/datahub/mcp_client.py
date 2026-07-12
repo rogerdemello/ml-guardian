@@ -19,7 +19,7 @@ import logging
 import re
 from datetime import datetime, timezone
 
-from .base import Asset, DataHubClient, FreshnessSignal, QualitySignal, SchemaField
+from .base import Asset, DataHubClient, FreshnessSignal, SchemaField
 
 logger = logging.getLogger("ml_guardian.datahub.mcp")
 

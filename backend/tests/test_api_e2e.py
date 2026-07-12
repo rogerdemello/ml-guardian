@@ -1,5 +1,4 @@
 """End-to-end API tests in fixture mode (no external infra, no LLM)."""
-from pathlib import Path
 
 from fastapi.testclient import TestClient
 

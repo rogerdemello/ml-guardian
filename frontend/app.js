@@ -103,8 +103,12 @@ function renderTable(incidents) {
 
 async function refresh() {
   const [health, incidents] = await Promise.all([api("/health"), api("/incidents")]);
+  const degraded = health.status === "degraded";
   document.getElementById("mode-text").textContent =
-    `${health.datahub_mode} mode · LLM ${health.llm_enabled ? "on" : "template"}`;
+    `${health.datahub_mode} mode · LLM ${health.llm_enabled ? "on" : "template"}${degraded ? " · ⚠ degraded" : ""}`;
+  const dot = document.querySelector("#mode-badge .dot");
+  if (dot) dot.style.background = degraded ? "var(--critical)" : "var(--good)";
+  if (degraded && health.error) toast("DataHub: " + health.error);
   renderTiles(incidents, health);
   renderSeverity(incidents);
   renderTable(incidents);

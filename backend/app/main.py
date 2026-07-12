@@ -6,10 +6,9 @@ Runs fully offline in the default `fixture` mode.
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from .config import REPO_ROOT, settings
@@ -37,19 +36,28 @@ for module in (scan, incidents, risk_scores, simulate):
     app.include_router(module.router, prefix="/api")
 
 
+@app.exception_handler(RuntimeError)
+async def _runtime_error_handler(request: Request, exc: RuntimeError) -> JSONResponse:
+    # Turn configuration/setup failures (e.g. live mode without a DataHub) into an
+    # actionable 503 instead of a cryptic 500.
+    return JSONResponse(status_code=503, content={"detail": str(exc)})
+
+
 @app.get("/api/health")
 def health() -> dict:
     from .services.datahub import get_datahub_client
 
+    status, assets, error = "ok", 0, None
     try:
         assets = len(get_datahub_client().search("*"))
-    except Exception:
-        assets = 0
+    except Exception as exc:  # DataHub unreachable / misconfigured in live mode
+        status, error = "degraded", str(exc)
     return {
-        "status": "ok",
+        "status": status,
         "datahub_mode": settings.datahub_mode,
         "llm_enabled": settings.llm_enabled,
         "assets_monitored": assets,
+        "error": error,
     }
 
 

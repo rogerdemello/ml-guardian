@@ -11,7 +11,6 @@ In `mcp` mode the same calls hit the real DataHub via `add_tags` / `add_terms`.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 from sqlmodel import Session
 
