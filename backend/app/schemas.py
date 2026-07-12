@@ -14,6 +14,13 @@ class WritebackOut(BaseModel):
     mode: str
 
 
+class AgentActionOut(BaseModel):
+    action_type: str  # detect | write_back | generate_code | resolve
+    detail: str
+    artifact_link: str
+    created_at: datetime
+
+
 class IncidentSummary(BaseModel):
     id: int
     datahub_urn: str
@@ -32,6 +39,7 @@ class IncidentDetail(IncidentSummary):
     remediation_artifact: str
     resolved_at: Optional[datetime]
     writebacks: list[WritebackOut]
+    actions: list[AgentActionOut]
 
 
 class RiskScoreOut(BaseModel):

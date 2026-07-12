@@ -33,6 +33,11 @@ class Settings(BaseSettings):
     freshness_warn_ratio: float = 1.0
     quality_null_rate_max: float = 0.05
 
+    # Downstream-impact severity weighting: an incident feeding a live ML model
+    # or dashboard is more dangerous than one feeding nothing.
+    downstream_model_boost: int = 15
+    downstream_dashboard_boost: int = 5
+
     model_config = SettingsConfigDict(
         env_file=str(REPO_ROOT / ".env"),
         env_file_encoding="utf-8",

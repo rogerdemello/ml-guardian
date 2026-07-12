@@ -3,6 +3,12 @@ const SEV_CLASS = { low: "low", medium: "medium", high: "high", critical: "criti
 const SEV_VAR = { low: "--good", medium: "--warning", high: "--serious", critical: "--critical" };
 const SEV_ORDER = ["critical", "high", "medium", "low"];
 const SEV_BAR = { critical: "sev-critical", high: "sev-high", medium: "sev-medium", low: "sev-good" };
+const ACTION_LABEL = {
+  detect: "🔍 Detected risk",
+  write_back: "🏷️ Wrote metadata back to DataHub",
+  generate_code: "🛠️ Generated remediation",
+  resolve: "✅ Resolved incident",
+};
 
 async function api(path, opts) {
   const res = await fetch(API + path, opts);
@@ -104,6 +110,15 @@ async function refresh() {
   renderTable(incidents);
 }
 
+function renderTimeline(actions) {
+  if (!actions || !actions.length) return "<p style='color:var(--muted)'>No actions recorded.</p>";
+  return `<ol class="timeline">${actions.map((a) =>
+    `<li class="tl-${a.action_type}"><span class="tl-dot"></span>
+      <div class="tl-main"><span class="tl-act">${ACTION_LABEL[a.action_type] || escapeHtml(a.action_type)}</span>
+      <span class="tl-time tnum">${fmtDate(a.created_at)}</span>
+      <div class="tl-detail">${escapeHtml(a.detail)}</div></div></li>`).join("")}</ol>`;
+}
+
 /* ---------- drawer ---------- */
 async function openDrawer(id) {
   const inc = await api(`/incidents/${id}`);
@@ -125,6 +140,8 @@ async function openDrawer(id) {
     ? `<div class="chip" style="margin-bottom:8px">✅ ${escapeHtml(inc.remediation_artifact)}</div>`
     : `<button class="btn primary" id="rem-btn">Generate remediation</button>`;
 
+  const timeline = renderTimeline(inc.actions);
+
   document.getElementById("d-body").innerHTML = `
     <div class="gauge">
       <div class="row"><span class="n">${inc.score}<small>/100 risk</small></span><span>${pill(inc.severity, SEV_CLASS[inc.severity])}</span></div>
@@ -142,6 +159,8 @@ async function openDrawer(id) {
     ${lineage}
     <div class="block-title">Metadata written back to DataHub</div>
     ${writes}
+    <div class="block-title">Agent activity</div>
+    <div id="timeline-slot">${timeline}</div>
     <div class="block-title">Remediation</div>
     <div id="rem-slot">${remediation}</div>
   `;
@@ -155,6 +174,11 @@ async function openDrawer(id) {
         `<div class="chip" style="margin-bottom:8px">✅ ${escapeHtml(r.artifact_path)}</div>
          <div class="rem-explain">${escapeHtml(r.explanation)}</div>
          <pre>${escapeHtml(r.code)}</pre>`;
+      // Refresh the agent-activity timeline (now includes generate_code + resolve).
+      try {
+        const fresh = await api(`/incidents/${id}`);
+        document.getElementById("timeline-slot").innerHTML = renderTimeline(fresh.actions);
+      } catch (_) { /* non-fatal */ }
       toast("Remediation generated · incident resolved");
       refresh();
     } catch (e) { toast("Error: " + e.message); rb.disabled = false; rb.textContent = "Generate remediation"; }

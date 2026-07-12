@@ -8,12 +8,49 @@ from backend.app.services.datahub.base import (
 )
 from backend.app.services.datahub.fixture_client import FixtureDataHubClient
 from backend.app.services.risk_detector import (
+    Finding,
+    _apply_downstream_weight,
     _check_freshness,
     _check_quality,
     _check_schema,
     detect,
     severity_for,
 )
+
+
+def _finding(score: int, impact: list[str]) -> Finding:
+    return Finding(
+        urn="urn:li:dataset:(urn:li:dataPlatform:sqlite,k.t,PROD)",
+        dataset_key="k",
+        asset_name="t",
+        asset_type="dataset",
+        incident_type="freshness",
+        score=score,
+        severity=severity_for(score),
+        reason="base reason.",
+        impact_radius=impact,
+    )
+
+
+def test_downstream_ml_consumers_raise_severity():
+    # An isolated table (only a downstream dataset) gets no boost...
+    isolated = _finding(70, ["urn:li:dataset:(urn:li:dataPlatform:sqlite,k.d,PROD)"])
+    _apply_downstream_weight(isolated, settings)
+    assert isolated.score == 70
+    assert isolated.severity == "high"
+
+    # ...but one feeding a live model + dashboard is escalated high -> critical.
+    feeding_model = _finding(
+        70,
+        [
+            "urn:li:mlModel:(urn:li:dataPlatform:mlflow,k.m,PROD)",
+            "urn:li:dashboard:(looker,k.dash)",
+        ],
+    )
+    _apply_downstream_weight(feeding_model, settings)
+    assert feeding_model.score == 70 + settings.downstream_model_boost + settings.downstream_dashboard_boost
+    assert feeding_model.severity == "critical"
+    assert "at risk" in feeding_model.reason
 
 
 def test_severity_buckets():
@@ -28,19 +65,22 @@ def test_detect_over_fixtures_finds_exactly_the_planted_issues():
     findings = detect(FixtureDataHubClient(), settings)
     by_key = {(f.dataset_key, f.incident_type): f for f in findings}
 
-    # nyc-taxi freshness: staging_trips 72h vs 24h SLA => 3x => score 90 critical
+    # nyc-taxi freshness: staging_trips 72h vs 24h SLA => base 90; downstream has
+    # 1 model + 1 dashboard => 90 + 15 + 5 => capped 100 critical.
     fresh = by_key[("nyc-taxi", "freshness")]
     assert "staging_trips" in fresh.urn
-    assert fresh.score == 90
+    assert fresh.score == 100
     assert fresh.severity == "critical"
     # downstream of staging_trips: mart -> model -> dashboard
     assert len(fresh.impact_radius) == 3
     assert any("fare_prediction" in u for u in fresh.impact_radius)
 
-    # healthcare quality on raw_patients (validity violations + null names)
+    # healthcare quality on raw_patients: base 64; downstream 1 model + 1 dashboard
+    # => 64 + 15 + 5 => 84 high.
     qual = by_key[("healthcare", "quality")]
     assert "raw_patients" in qual.urn
-    assert qual.severity in {"high", "critical"}
+    assert qual.score == 84
+    assert qual.severity == "high"
     # downstream: staging -> mart_billing/mart_demographics -> model -> dashboard
     assert len(qual.impact_radius) == 5
     assert any("readmission_risk" in u for u in qual.impact_radius)

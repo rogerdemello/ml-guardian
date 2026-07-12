@@ -7,10 +7,13 @@ explanation is used so the app runs fully offline.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from ..config import settings
 from .datahub.base import DataHubClient
+
+logger = logging.getLogger("ml_guardian.orchestrator")
 
 PROMPT_DIR = Path(__file__).resolve().parents[1] / "prompts"
 
@@ -79,7 +82,8 @@ def _gemini_explanation(ctx: dict) -> str | None:
         text = (resp.text or "").strip()
         return text or None
     except Exception:
-        # Never let the LLM path break a scan; fall back to the template.
+        # Never let the LLM path break a scan; log and fall back to the template.
+        logger.exception("Gemini explanation call failed; falling back to template.")
         return None
 
 

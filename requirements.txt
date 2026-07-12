@@ -6,12 +6,16 @@ pydantic-settings==2.6.1
 python-dotenv==1.0.1
 httpx==0.28.1
 
+# Generated-SQL syntax validation (dialect-aware)
+sqlglot>=25.0.0
+
 # Optional LLM orchestration (app runs without it via template fallback)
 google-genai>=1.0.0,<2.0.0
 
-# Optional: real DataHub integration via MCP (only needed when DATAHUB_MODE=mcp)
-# mcp-server-datahub>=0.5.0
-# datahub-agent-context>=0.1.0
+# Optional: real DataHub integration (only needed when DATAHUB_MODE=mcp).
+# Lazy-imported in mcp_client.py, so offline/CI installs can skip it.
+#   pip install acryl-datahub
+# acryl-datahub>=0.13.0
 
 # Dev / test
 pytest==8.3.4

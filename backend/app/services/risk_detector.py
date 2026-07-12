@@ -143,6 +143,32 @@ def _check_schema(asset: Asset, s: Settings) -> Finding | None:
     )
 
 
+def _apply_downstream_weight(finding: Finding, s: Settings) -> None:
+    """Raise score/severity when downstream ML models or dashboards are at risk.
+
+    A stale/degraded table that feeds a live model is more dangerous than one
+    feeding nothing — this is the core of the "name the models at risk" pitch.
+    """
+    models = sum(1 for u in finding.impact_radius if ":mlModel:" in u)
+    dashboards = sum(1 for u in finding.impact_radius if ":dashboard:" in u)
+    if not models and not dashboards:
+        return
+    boosted = min(
+        100,
+        finding.score + models * s.downstream_model_boost + dashboards * s.downstream_dashboard_boost,
+    )
+    if boosted <= finding.score:
+        return
+    finding.score = boosted
+    finding.severity = severity_for(boosted)
+    consumers = []
+    if models:
+        consumers.append(f"{models} ML model{'s' if models > 1 else ''}")
+    if dashboards:
+        consumers.append(f"{dashboards} dashboard{'s' if dashboards > 1 else ''}")
+    finding.reason += f" Downstream {' and '.join(consumers)} at risk — severity raised."
+
+
 def detect(client: DataHubClient, s: Settings | None = None) -> list[Finding]:
     """Pure detection: return one finding per (asset, issue) that breaches a rule."""
     s = s or default_settings
@@ -152,6 +178,7 @@ def detect(client: DataHubClient, s: Settings | None = None) -> list[Finding]:
             finding = check(asset, s)
             if finding:
                 finding.impact_radius = _downstream_closure(client, asset.urn)
+                _apply_downstream_weight(finding, s)
                 findings.append(finding)
     return findings
 

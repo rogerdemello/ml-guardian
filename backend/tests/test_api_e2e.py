@@ -41,12 +41,20 @@ def test_full_flow_scan_detail_writeback_remediation():
     assert kinds == {"tag", "glossary_term"}
     assert "datahub_link" in detail
 
+    # Agent-action timeline records detect + write-back so far.
+    pre_actions = {a["action_type"] for a in detail["actions"]}
+    assert {"detect", "write_back"} <= pre_actions
+
     # Applying remediation writes a real artifact and resolves the incident.
     rem = client.post(f"/api/incidents/{top_id}/apply-remediation").json()
     assert rem["status"] == "resolved"
     artifact = REPO_ROOT / rem["artifact_path"]
     assert artifact.exists()
     assert len(rem["code"]) > 0
+
+    # Timeline now includes the full agent lifecycle.
+    actions = {a["action_type"] for a in client.get(f"/api/incidents/{top_id}").json()["actions"]}
+    assert {"detect", "write_back", "generate_code", "resolve"} <= actions
 
     # Risk scores endpoint is populated.
     risks = client.get("/api/risk-scores").json()

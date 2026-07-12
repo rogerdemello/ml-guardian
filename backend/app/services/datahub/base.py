@@ -68,8 +68,20 @@ class DataHubClient(ABC):
     def add_terms(self, urn: str, terms: list[str]) -> None:
         """Attach glossary terms to an entity (write-back)."""
 
-    def ui_link(self, urn: str) -> str:
-        """Build a clickable DataHub UI link for an entity URN."""
-        from ...config import settings
 
-        return f"{settings.datahub_ui_url}/dataset/{urn}"
+def ui_link(urn: str) -> str:
+    """Build a clickable DataHub UI link, routed by entity type.
+
+    Pure function — no client instance needed. DataHub's UI paths differ per
+    entity (`/dataset/`, `/mlModel/`, `/dashboard/`), so a dataset-only path
+    would break model/dashboard links.
+    """
+    from ...config import settings
+
+    if ":mlModel:" in urn:
+        path = "mlModels"
+    elif ":dashboard:" in urn:
+        path = "dashboard"
+    else:
+        path = "dataset"
+    return f"{settings.datahub_ui_url}/{path}/{urn}"

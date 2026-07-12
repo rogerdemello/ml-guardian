@@ -1,5 +1,8 @@
 # ML Guardian: Metadata-Driven ML Risk Sentinel
 
+[![CI](https://github.com/rogerdemello/ml-guardian/actions/workflows/ci.yml/badge.svg)](https://github.com/rogerdemello/ml-guardian/actions/workflows/ci.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 > Autonomous ML reliability agent built on DataHub's context platform.
 > It monitors ML lineage, data quality, and freshness to detect silent failures,
 > creates incidents, writes context back into DataHub as tags and glossary terms,
@@ -8,6 +11,13 @@
 **Build with DataHub: The Agent Hackathon** (Devpost) · Track: **Production ML Agents**
 (+ Agents That Do Real Work, Metadata-Aware Code Generation).
 Submission deadline: **Aug 10, 2026**.
+
+![ML Guardian dashboard](docs/dashboard.png)
+
+<p align="center"><em>Incident detail — risk gauge, downstream impact radius as a lineage flow,
+metadata written back to DataHub, and the agent-activity timeline.</em></p>
+
+![Incident detail with agent-activity timeline](docs/incident-detail.png)
 
 ---
 
@@ -66,39 +76,36 @@ never color-alone).
 
 ## Architecture
 
-```
-Browser dashboard (vanilla JS)  ──►  FastAPI  ──►  Risk detector (pure heuristics)
-        (served at "/")                 │                 │
-                                        │                 ├─► Orchestrator (Gemini, optional)
-                                        │                 ├─► Metadata writer (write-back)
-                                        │                 └─► Remediation generator
-                                        ▼                 ▼
-                                    SQLite            DataHub client
-                              (incidents, risk,   ┌───────────────┴──────────────┐
-                               actions, writes)   │ FixtureDataHubClient (offline)│
-                                                  │ McpDataHubClient  (live MCP)  │
-                                                  └──────────────────────────────┘
-```
+![Architecture](docs/architecture.svg)
 
-- **DataHub client** (`backend/app/services/datahub/`) — a single interface with two
-  implementations. Fixtures now; real `mcp-server-datahub` tools behind config.
+- **DataHub client** (`backend/app/services/datahub/`) — one interface, two
+  implementations: `FixtureDataHubClient` (offline, default) and `McpDataHubClient`
+  (live DataHub via the SDK — see [docs/live-datahub.md](docs/live-datahub.md)).
 - **Risk detector** (`risk_detector.py`) — deterministic, unit-tested heuristics for
-  freshness, quality, and schema drift; computes impact radius from lineage.
+  freshness, quality, and schema drift. **Severity is weighted by downstream ML
+  impact**: a table feeding a live model/dashboard scores higher than one feeding
+  nothing (impact radius from lineage).
 - **Orchestrator** (`orchestrator.py`) — Google Gemini explains each incident when
   `GEMINI_API_KEY` is set; falls back to templates so it always runs.
 - **Metadata writer** (`metadata_writer.py`) — writes `ml_incident:<severity>` tags
   and incident glossary terms back to DataHub. Offline, these are recorded in
   `writeback_log.json` + the `datahub_writebacks` table as visible proof.
-- **Remediation** (`remediation.py`) — generates SQL/dbt/Airflow assertions grounded
-  in the real schema; artifacts land in `examples/generated/`.
+- **Remediation** (`remediation.py`) — generates **dialect-aware, `sqlglot`-validated**
+  SQL assertions grounded in the asset's real schema and SLA; artifacts land in
+  `examples/generated/`.
+- **Agent activity** — every step (detect → write-back → generate → resolve) is
+  recorded as an `AgentAction` and surfaced as a timeline in the incident drawer.
 
-## DataHub integration (real tools)
+## DataHub integration
 
-Read: `search`, `get_entities`, `list_lineage`, `list_schema_fields`, `get_queries`.
-Write: `add_tags`, `add_terms`.
+**Offline (`fixture`)** — bundled fixtures mirror the real sample datasets so the
+whole detect → score → write-back → remediate loop runs with no infra.
 
-These are the actual `mcp-server-datahub` (v0.5.0+) tool names. `McpDataHubClient`
-is a thin adapter over them; the offline path needs none of it.
+**Live (`DATAHUB_MODE=mcp`)** — `McpDataHubClient` uses the DataHub Python SDK
+(`acryl-datahub`): reads schema/lineage via `DataHubGraph`, derives freshness from
+the `operation` aspect, and does a real **read-modify-write** of the `globalTags` /
+`glossaryTerms` aspects (`emit_mcp`) — the same tag + glossary-term write-back the
+fixture mode simulates. Setup: [docs/live-datahub.md](docs/live-datahub.md).
 
 ## API
 

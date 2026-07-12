@@ -7,6 +7,7 @@ freshness/quality issues. Fully deterministic and infra-free.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 from .base import (
@@ -51,7 +52,7 @@ def _asset_from_dict(d: dict, dataset_key: str) -> Asset:
             invalid_rate=float(q.get("invalid_rate", 0.0)),
             notes=q.get("notes", ""),
         )
-    asset = Asset(
+    return Asset(
         urn=d["urn"],
         name=d["name"],
         asset_type=d.get("asset_type", "dataset"),
@@ -62,14 +63,26 @@ def _asset_from_dict(d: dict, dataset_key: str) -> Asset:
         quality=qual,
         baseline_fields=d.get("baseline_fields", []),
     )
-    # Apply any simulation overrides.
+
+
+def _with_overrides(asset: Asset) -> Asset:
+    """Return the asset with any simulation overrides applied (copy on write).
+
+    Applied at read-time (not load-time) so the client can be cached as a
+    singleton while `POST /simulate-issue` still takes effect.
+    """
     ov = _OVERRIDES.get(asset.urn)
-    if ov:
-        if "hours_since_update" in ov and asset.freshness:
-            asset.freshness.hours_since_update = ov["hours_since_update"]
-        if "null_rate" in ov and asset.quality:
-            asset.quality.null_rate = ov["null_rate"]
-    return asset
+    if not ov:
+        return asset
+    fresh = asset.freshness
+    qual = asset.quality
+    if "hours_since_update" in ov and fresh:
+        fresh = replace(fresh, hours_since_update=ov["hours_since_update"])
+    if "null_rate" in ov and qual:
+        qual = replace(qual, null_rate=ov["null_rate"])
+    if "invalid_rate" in ov and qual:
+        qual = replace(qual, invalid_rate=ov["invalid_rate"])
+    return replace(asset, freshness=fresh, quality=qual)
 
 
 class FixtureDataHubClient(DataHubClient):
@@ -97,10 +110,10 @@ class FixtureDataHubClient(DataHubClient):
         if query and query != "*":
             q = query.lower()
             assets = [a for a in assets if q in a.name.lower() or q in a.dataset_key.lower()]
-        return assets
+        return [_with_overrides(a) for a in assets]
 
     def get_entities(self, urns: list[str]) -> list[Asset]:
-        return [self._assets[u] for u in urns if u in self._assets]
+        return [_with_overrides(self._assets[u]) for u in urns if u in self._assets]
 
     def list_lineage(self, urn: str, direction: str = "downstream") -> list[str]:
         return list(self._lineage.get(urn, {}).get(direction, []))

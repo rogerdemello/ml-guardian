@@ -5,13 +5,9 @@ import json
 
 from sqlmodel import Session, select
 
-from .models import DataHubWriteback, MLIncident
-from .schemas import IncidentDetail, IncidentSummary, WritebackOut
-from .services.datahub import get_datahub_client
-
-
-def _link(urn: str) -> str:
-    return get_datahub_client().ui_link(urn)
+from .models import AgentAction, DataHubWriteback, MLIncident
+from .schemas import AgentActionOut, IncidentDetail, IncidentSummary, WritebackOut
+from .services.datahub.base import ui_link as _link
 
 
 def to_summary(incident: MLIncident) -> IncidentSummary:
@@ -32,6 +28,11 @@ def to_detail(session: Session, incident: MLIncident) -> IncidentDetail:
     writebacks = session.exec(
         select(DataHubWriteback).where(DataHubWriteback.incident_id == incident.id)
     ).all()
+    actions = session.exec(
+        select(AgentAction)
+        .where(AgentAction.incident_id == incident.id)
+        .order_by(AgentAction.created_at, AgentAction.id)
+    ).all()
     try:
         impact = json.loads(incident.impact_radius) if incident.impact_radius else []
     except json.JSONDecodeError:
@@ -50,5 +51,14 @@ def to_detail(session: Session, incident: MLIncident) -> IncidentDetail:
                 mode=w.mode,
             )
             for w in writebacks
+        ],
+        actions=[
+            AgentActionOut(
+                action_type=a.action_type,
+                detail=a.detail,
+                artifact_link=a.artifact_link,
+                created_at=a.created_at,
+            )
+            for a in actions
         ],
     )
