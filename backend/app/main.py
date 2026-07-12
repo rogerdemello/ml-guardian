@@ -5,6 +5,7 @@ Runs fully offline in the default `fixture` mode.
 """
 from __future__ import annotations
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -13,7 +14,10 @@ from fastapi.staticfiles import StaticFiles
 
 from .config import REPO_ROOT, settings
 from .db import init_db
+from .errors import ConfigurationError
 from .routes import incidents, risk_scores, scan, simulate
+
+logger = logging.getLogger("ml_guardian")
 
 FRONTEND_DIR = REPO_ROOT / "frontend"
 
@@ -36,11 +40,12 @@ for module in (scan, incidents, risk_scores, simulate):
     app.include_router(module.router, prefix="/api")
 
 
-@app.exception_handler(RuntimeError)
-async def _runtime_error_handler(request: Request, exc: RuntimeError) -> JSONResponse:
-    # Turn configuration/setup failures (e.g. live mode without a DataHub) into an
-    # actionable 503 instead of a cryptic 500.
-    return JSONResponse(status_code=503, content={"detail": str(exc)})
+@app.exception_handler(ConfigurationError)
+async def _config_error_handler(request: Request, exc: ConfigurationError) -> JSONResponse:
+    # Turn setup failures (e.g. live mode without a DataHub) into an actionable
+    # 503. Only the curated `detail` is returned — never raw exception internals.
+    logger.warning("configuration error: %s", exc.detail)
+    return JSONResponse(status_code=503, content={"detail": exc.detail})
 
 
 @app.get("/api/health")
@@ -50,8 +55,11 @@ def health() -> dict:
     status, assets, error = "ok", 0, None
     try:
         assets = len(get_datahub_client().search("*"))
-    except Exception as exc:  # DataHub unreachable / misconfigured in live mode
-        status, error = "degraded", str(exc)
+    except ConfigurationError as exc:
+        status, error = "degraded", exc.detail  # curated, user-safe
+    except Exception:
+        logger.exception("health check failed")
+        status, error = "degraded", "DataHub is unreachable or misconfigured."
     return {
         "status": status,
         "datahub_mode": settings.datahub_mode,

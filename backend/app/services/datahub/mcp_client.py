@@ -50,9 +50,10 @@ def _entity_type(urn: str) -> str:
 class McpDataHubClient(DataHubClient):
     def __init__(self) -> None:
         from ...config import settings
+        from ...errors import ConfigurationError
 
         if not settings.datahub_token:
-            raise RuntimeError(
+            raise ConfigurationError(
                 "DATAHUB_MODE=mcp requires DATAHUB_TOKEN (and DATAHUB_GMS_URL). "
                 "Set them in .env or use DATAHUB_MODE=fixture for offline mode."
             )
@@ -60,7 +61,7 @@ class McpDataHubClient(DataHubClient):
         try:
             from datahub.ingestion.graph.client import DataHubGraph, DatahubClientConfig
         except ImportError as exc:  # pragma: no cover - needs the optional dep
-            raise RuntimeError(
+            raise ConfigurationError(
                 "Live mode requires the DataHub SDK. Install it with "
                 "`pip install acryl-datahub`."
             ) from exc
