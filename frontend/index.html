@@ -9,49 +9,84 @@
 <body>
   <header>
     <div class="brand">
-      <span class="logo">🛡️</span>
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M12 2 4 5v6c0 5 3.4 8.6 8 11 4.6-2.4 8-6 8-11V5l-8-3Z" fill="var(--accent)" opacity="0.16"/>
+        <path d="M12 2 4 5v6c0 5 3.4 8.6 8 11 4.6-2.4 8-6 8-11V5l-8-3Z" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="m8.5 12 2.3 2.3L15.5 9.5" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
       <div>
         <h1>ML Guardian</h1>
         <p class="tagline">Metadata-driven ML risk sentinel · powered by DataHub</p>
       </div>
     </div>
     <div class="actions">
-      <span id="mode-badge" class="badge">…</span>
-      <button id="scan-btn" class="btn primary">Run scan</button>
-      <button id="sim-fresh" class="btn">Simulate freshness (nyc-taxi)</button>
-      <button id="sim-qual" class="btn">Simulate quality (healthcare)</button>
+      <span id="mode-badge" class="badge"><span class="dot"></span><span id="mode-text">connecting…</span></span>
+      <button id="sim-fresh" class="btn">Simulate freshness</button>
+      <button id="sim-qual" class="btn">Simulate quality</button>
+      <button id="scan-btn" class="btn primary"><span id="scan-label">Run scan</span></button>
     </div>
   </header>
 
-  <section class="cards">
-    <div class="card"><div class="card-value" id="stat-active">–</div><div class="card-label">Active incidents</div></div>
-    <div class="card"><div class="card-value" id="stat-high">–</div><div class="card-label">High-risk assets</div></div>
-    <div class="card"><div class="card-value" id="stat-datasets">–</div><div class="card-label">Assets monitored</div></div>
-    <div class="card"><div class="card-value" id="stat-writes">–</div><div class="card-label">Metadata write-backs</div></div>
-  </section>
-
   <main>
+    <div class="section-label">Overview</div>
+    <div class="tiles">
+      <div class="tile">
+        <div class="label">Active incidents</div>
+        <div class="value tnum" id="stat-active">–</div>
+        <div class="sub" id="stat-active-sub">across monitored assets</div>
+      </div>
+      <div class="tile">
+        <div class="label">Critical / High</div>
+        <div class="value tnum" id="stat-high">–</div>
+        <div class="sub">need attention now</div>
+      </div>
+      <div class="tile">
+        <div class="label">Assets monitored</div>
+        <div class="value tnum" id="stat-assets">–</div>
+        <div class="sub" id="stat-assets-sub">datasets, models, dashboards</div>
+      </div>
+      <div class="tile">
+        <div class="label">Metadata write-backs</div>
+        <div class="value tnum" id="stat-writes">–</div>
+        <div class="sub">tags + glossary terms to DataHub</div>
+      </div>
+    </div>
+
+    <div class="overview" id="overview" hidden>
+      <div class="section-label" style="margin-top:0">Severity distribution</div>
+      <div class="sev-bar" id="sev-bar"></div>
+      <div class="sev-legend" id="sev-legend"></div>
+    </div>
+
     <div class="panel">
-      <h2>Incidents</h2>
-      <table id="incidents-table">
-        <thead>
-          <tr><th>Severity</th><th>Dataset</th><th>Type</th><th>Score</th><th>Status</th><th>Detected</th></tr>
-        </thead>
-        <tbody id="incidents-body">
-          <tr><td colspan="6" class="empty">No incidents yet — click <strong>Run scan</strong>.</td></tr>
-        </tbody>
-      </table>
+      <div class="panel-head">
+        <h2>Incidents</h2>
+        <span class="count" id="inc-count"></span>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>Severity</th><th>Asset</th><th>Type</th><th>Risk score</th><th>Status</th><th>Detected</th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
     </div>
   </main>
 
-  <div id="modal" class="modal hidden">
-    <div class="modal-content">
-      <button class="close" id="modal-close">×</button>
-      <div id="modal-body"></div>
+  <div class="scrim" id="scrim"></div>
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <span class="sub" id="d-sub"></span>
+        <h3 id="d-title"></h3>
+      </div>
+      <button class="close" id="d-close" aria-label="Close">×</button>
     </div>
-  </div>
+    <div class="drawer-body" id="d-body"></div>
+  </aside>
 
-  <div id="toast" class="toast hidden"></div>
+  <div class="toast" id="toast"><span class="tdot"></span><span id="toast-msg"></span></div>
 
   <script src="/static/app.js"></script>
 </body>

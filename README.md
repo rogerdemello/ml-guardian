@@ -30,26 +30,37 @@ with planted issues — no Docker, no DataHub instance, no API keys required. A 
 env var (`DATAHUB_MODE=mcp`) switches it onto a live DataHub via the real
 [`mcp-server-datahub`](https://pypi.org/project/mcp-server-datahub/).
 
+**One command** runs the backend *and* the frontend (the FastAPI server serves the
+dashboard — no separate Node/dev server), then opens your browser:
+
 ```bash
-# Windows
-./run.ps1
-# macOS / Linux
-./run.sh
+./run.ps1     # Windows
+./run.sh      # macOS / Linux
 ```
 
-Then open <http://localhost:8000>, click **Run scan**, and explore the incidents.
+It creates the venv, installs deps, and serves everything at
+<http://localhost:8000>. Click **Run scan** and explore the incidents.
 
-### Manual setup (equivalent)
+### Manual setup (equivalent one command)
 
 ```bash
 python -m venv .venv
 ./.venv/Scripts/python -m pip install -r requirements.txt   # Windows path
-uvicorn backend.app.main:app --port 8000
+uvicorn backend.app.main:app --port 8000                    # backend + dashboard
 ```
 
 No `.env` is needed for the default offline demo. Copy `.env.example` to `.env`
 only to enable a live DataHub (`DATAHUB_MODE=mcp`) or LLM explanations
 (`GEMINI_API_KEY`, Google Gemini).
+
+### The dashboard
+
+A single-page dashboard (served at `/`, no build step) with KPI stat tiles, a
+severity-distribution bar, an incidents table with inline risk-score meters, and a
+slide-over detail panel showing a risk gauge, the **downstream impact radius as a
+lineage flow**, the tags/glossary terms written back to DataHub, and one-click
+remediation. Theme-aware (light + dark), accessible severity colors (status palette,
+never color-alone).
 
 ---
 

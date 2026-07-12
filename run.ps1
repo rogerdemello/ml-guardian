@@ -1,6 +1,7 @@
-# ML Guardian - one-command local launcher (Windows PowerShell)
-# Creates a venv, installs deps, and starts the app at http://localhost:8000
+# ML Guardian - one command runs backend + frontend (Windows PowerShell).
+# Creates a venv, installs deps, opens the dashboard, and serves everything at :8000.
 $ErrorActionPreference = "Stop"
+$Port = 8000
 
 if (-not (Test-Path ".venv")) {
     Write-Host "Creating virtual environment..."
@@ -16,5 +17,8 @@ if (-not (Test-Path ".env")) {
     Write-Host "Created .env from .env.example (offline fixture mode, no keys required)."
 }
 
-Write-Host "Starting ML Guardian at http://localhost:8000 ..."
-& .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+# Open the dashboard once the server is up.
+Start-Job { Start-Sleep 3; Start-Process "http://localhost:$using:Port" } | Out-Null
+
+Write-Host "`nML Guardian running at http://localhost:$Port  (Ctrl+C to stop)`n"
+& .\.venv\Scripts\python.exe -m uvicorn backend.app.main:app --host 0.0.0.0 --port $Port

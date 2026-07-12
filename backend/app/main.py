@@ -39,7 +39,18 @@ for module in (scan, incidents, risk_scores, simulate):
 
 @app.get("/api/health")
 def health() -> dict:
-    return {"status": "ok", "datahub_mode": settings.datahub_mode, "llm_enabled": settings.llm_enabled}
+    from .services.datahub import get_datahub_client
+
+    try:
+        assets = len(get_datahub_client().search("*"))
+    except Exception:
+        assets = 0
+    return {
+        "status": "ok",
+        "datahub_mode": settings.datahub_mode,
+        "llm_enabled": settings.llm_enabled,
+        "assets_monitored": assets,
+    }
 
 
 # Serve the dashboard.
