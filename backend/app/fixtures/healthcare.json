@@ -1,0 +1,103 @@
+{
+  "dataset_key": "healthcare",
+  "description": "Real DataHub sample dataset (github.com/datahub-project/static-assets/datasets/healthcare): a SQLite pipeline raw_patients -> staging_patients -> mart_billing / mart_demographics (~55.5k rows). Planted quality issues on raw_patients: negative billing (~2%), invalid ages (~1.5%), swapped admission/discharge dates (~0.5%), null names (~1%). The mlModel/dashboard below are illustrative downstream ML consumers.",
+  "entities": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.raw_patients,PROD)",
+      "name": "raw_patients",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "name", "type": "string"},
+        {"name": "age", "type": "int"},
+        {"name": "gender", "type": "string"},
+        {"name": "blood_type", "type": "string"},
+        {"name": "medical_condition", "type": "string"},
+        {"name": "date_of_admission", "type": "date"},
+        {"name": "doctor", "type": "string"},
+        {"name": "hospital", "type": "string"},
+        {"name": "insurance_provider", "type": "string"},
+        {"name": "billing_amount", "type": "double"},
+        {"name": "room_number", "type": "int"},
+        {"name": "admission_type", "type": "string"},
+        {"name": "discharge_date", "type": "date"},
+        {"name": "medication", "type": "string"},
+        {"name": "test_results", "type": "string"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 4, "expected_sla_hours": 24},
+        "quality": {
+          "row_count": 55500,
+          "null_rate": 0.011,
+          "invalid_rate": 0.04,
+          "anomaly_count": 4,
+          "notes": "Planted: negative billing_amount (~2%), age <0 or >120 (~1.5%), discharge_date before date_of_admission (~0.5%), null name (~1%)."
+        }
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.staging_patients,PROD)",
+      "name": "staging_patients",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "name", "type": "string"},
+        {"name": "age", "type": "int"},
+        {"name": "gender", "type": "string"},
+        {"name": "medical_condition", "type": "string"},
+        {"name": "billing_amount", "type": "double"},
+        {"name": "length_of_stay", "type": "int"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 5, "expected_sla_hours": 24},
+        "quality": {"row_count": 55500, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)",
+      "name": "mart_billing",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "billing_amount", "type": "double"},
+        {"name": "insurance_provider", "type": "string"},
+        {"name": "length_of_stay", "type": "int"}
+      ],
+      "signals": {"quality": {"row_count": 55500, "null_rate": 0.0, "anomaly_count": 0}}
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_demographics,PROD)",
+      "name": "mart_demographics",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "age", "type": "int"},
+        {"name": "gender", "type": "string"},
+        {"name": "blood_type", "type": "string"},
+        {"name": "medical_condition", "type": "string"}
+      ],
+      "signals": {"quality": {"row_count": 55500, "null_rate": 0.0, "anomaly_count": 0}}
+    },
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,healthcare.readmission_risk,PROD)",
+      "name": "readmission_risk_model",
+      "asset_type": "mlModel",
+      "platform": "mlflow",
+      "schema_fields": []
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,healthcare.clinical_overview)",
+      "name": "clinical_overview_dashboard",
+      "asset_type": "dashboard",
+      "platform": "looker",
+      "schema_fields": []
+    }
+  ],
+  "lineage": [
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.raw_patients,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.staging_patients,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.staging_patients,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.staging_patients,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_demographics,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.mart_billing,PROD)", "downstream": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,healthcare.readmission_risk,PROD)"},
+    {"upstream": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,healthcare.readmission_risk,PROD)", "downstream": "urn:li:dashboard:(looker,healthcare.clinical_overview)"}
+  ]
+}

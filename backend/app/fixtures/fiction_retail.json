@@ -1,0 +1,97 @@
+{
+  "dataset_key": "fiction-retail",
+  "description": "Real DataHub sample dataset (github.com/datahub-project/static-assets/datasets/fiction-retail): a clean SQLite global-retail schema (50k customers, 150k orders, 10 tables). Representative core tables shown here. Clean baseline -> no incidents (demonstrates true negatives). The mlModel/dashboard are illustrative downstream ML consumers.",
+  "entities": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.customers,PROD)",
+      "name": "customers",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "customer_id", "type": "int"},
+        {"name": "name", "type": "string"},
+        {"name": "email", "type": "string"},
+        {"name": "signup_date", "type": "date"},
+        {"name": "country", "type": "string"},
+        {"name": "customer_segment", "type": "string"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 3, "expected_sla_hours": 24},
+        "quality": {"row_count": 50000, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.orders,PROD)",
+      "name": "orders",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "order_id", "type": "int"},
+        {"name": "customer_id", "type": "int"},
+        {"name": "order_date", "type": "date"},
+        {"name": "order_status", "type": "string"},
+        {"name": "total_amount", "type": "double"},
+        {"name": "payment_method", "type": "string"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 2, "expected_sla_hours": 24},
+        "quality": {"row_count": 150000, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.order_items,PROD)",
+      "name": "order_items",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "order_item_id", "type": "int"},
+        {"name": "order_id", "type": "int"},
+        {"name": "product_id", "type": "int"},
+        {"name": "quantity", "type": "int"},
+        {"name": "unit_price", "type": "double"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 2, "expected_sla_hours": 24},
+        "quality": {"row_count": 346202, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.products,PROD)",
+      "name": "products",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "product_id", "type": "int"},
+        {"name": "name", "type": "string"},
+        {"name": "category", "type": "string"},
+        {"name": "brand", "type": "string"},
+        {"name": "price", "type": "double"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 6, "expected_sla_hours": 24},
+        "quality": {"row_count": 5000, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,fiction_retail.churn,PROD)",
+      "name": "churn_model",
+      "asset_type": "mlModel",
+      "platform": "mlflow",
+      "schema_fields": []
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,fiction_retail.exec_overview)",
+      "name": "exec_overview_dashboard",
+      "asset_type": "dashboard",
+      "platform": "looker",
+      "schema_fields": []
+    }
+  ],
+  "lineage": [
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.customers,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.orders,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.orders,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.order_items,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.products,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.order_items,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,fiction_retail.order_items,PROD)", "downstream": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,fiction_retail.churn,PROD)"},
+    {"upstream": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,fiction_retail.churn,PROD)", "downstream": "urn:li:dashboard:(looker,fiction_retail.exec_overview)"}
+  ]
+}

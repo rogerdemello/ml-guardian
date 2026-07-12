@@ -1,0 +1,34 @@
+[
+  {
+    "incident_id": 1,
+    "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.staging_trips,PROD)",
+    "write_type": "tag",
+    "value": "ml_incident:critical",
+    "mode": "mcp",
+    "tool_call": "add_tags(urn=..., tags=['ml_incident:critical'])"
+  },
+  {
+    "incident_id": 1,
+    "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.staging_trips,PROD)",
+    "write_type": "glossary_term",
+    "value": "Data Freshness Incident",
+    "mode": "mcp",
+    "tool_call": "add_terms(urn=..., terms=['Data Freshness Incident'])"
+  },
+  {
+    "incident_id": 2,
+    "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.raw_patients,PROD)",
+    "write_type": "tag",
+    "value": "ml_incident:high",
+    "mode": "mcp",
+    "tool_call": "add_tags(urn=..., tags=['ml_incident:high'])"
+  },
+  {
+    "incident_id": 2,
+    "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,healthcare.raw_patients,PROD)",
+    "write_type": "glossary_term",
+    "value": "Data Quality Incident",
+    "mode": "mcp",
+    "tool_call": "add_terms(urn=..., terms=['Data Quality Incident'])"
+  }
+]

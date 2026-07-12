@@ -1,0 +1,40 @@
+# dbt tests expressing the healthcare validity remediation.
+# ML Guardian can emit remediations as dbt tests so they live beside the model
+# code and run in CI. Uses dbt_utils / dbt-expectations style tests.
+
+version: 2
+
+models:
+  - name: raw_patients
+    description: >-
+      Synthetic patient records feeding the readmission_risk model. ML Guardian
+      flagged validity violations: negative billing, out-of-range age, swapped
+      admission/discharge dates, and null names.
+    columns:
+      - name: name
+        tests:
+          - not_null:
+              config:
+                severity: error
+      - name: age
+        description: Patient age; must be within a plausible human range.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              max_value: 120
+              config:
+                severity: error
+      - name: billing_amount
+        description: Billing amount must be non-negative.
+        tests:
+          - dbt_utils.accepted_range:
+              min_value: 0
+              config:
+                severity: error
+
+    # Table-level test: discharge must not precede admission.
+    tests:
+      - dbt_utils.expression_is_true:
+          expression: "discharge_date >= date_of_admission"
+          config:
+            severity: error

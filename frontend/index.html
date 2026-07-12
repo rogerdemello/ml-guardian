@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ML Guardian</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="logo">🛡️</span>
+      <div>
+        <h1>ML Guardian</h1>
+        <p class="tagline">Metadata-driven ML risk sentinel · powered by DataHub</p>
+      </div>
+    </div>
+    <div class="actions">
+      <span id="mode-badge" class="badge">…</span>
+      <button id="scan-btn" class="btn primary">Run scan</button>
+      <button id="sim-fresh" class="btn">Simulate freshness (nyc-taxi)</button>
+      <button id="sim-qual" class="btn">Simulate quality (healthcare)</button>
+    </div>
+  </header>
+
+  <section class="cards">
+    <div class="card"><div class="card-value" id="stat-active">–</div><div class="card-label">Active incidents</div></div>
+    <div class="card"><div class="card-value" id="stat-high">–</div><div class="card-label">High-risk assets</div></div>
+    <div class="card"><div class="card-value" id="stat-datasets">–</div><div class="card-label">Assets monitored</div></div>
+    <div class="card"><div class="card-value" id="stat-writes">–</div><div class="card-label">Metadata write-backs</div></div>
+  </section>
+
+  <main>
+    <div class="panel">
+      <h2>Incidents</h2>
+      <table id="incidents-table">
+        <thead>
+          <tr><th>Severity</th><th>Dataset</th><th>Type</th><th>Score</th><th>Status</th><th>Detected</th></tr>
+        </thead>
+        <tbody id="incidents-body">
+          <tr><td colspan="6" class="empty">No incidents yet — click <strong>Run scan</strong>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-content">
+      <button class="close" id="modal-close">×</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+{
+  "dataset_key": "nyc-taxi",
+  "description": "Real DataHub sample dataset (github.com/datahub-project/static-assets/datasets/nyc-taxi): a SQLite 3-stage pipeline raw_trips -> staging_trips -> mart_daily_summary. Planted freshness issue: staging_trips halts 3 days before raw_trips max date. The mlModel/dashboard below are illustrative downstream ML consumers added to show impact radius.",
+  "entities": [
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.raw_trips,PROD)",
+      "name": "raw_trips",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "VendorID", "type": "int"},
+        {"name": "tpep_pickup_datetime", "type": "timestamp"},
+        {"name": "tpep_dropoff_datetime", "type": "timestamp"},
+        {"name": "passenger_count", "type": "int"},
+        {"name": "trip_distance", "type": "double"},
+        {"name": "PULocationID", "type": "int"},
+        {"name": "DOLocationID", "type": "int"},
+        {"name": "payment_type", "type": "int"},
+        {"name": "fare_amount", "type": "double"},
+        {"name": "tip_amount", "type": "double"},
+        {"name": "total_amount", "type": "double"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 5, "expected_sla_hours": 24},
+        "quality": {"row_count": 250000, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.staging_trips,PROD)",
+      "name": "staging_trips",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "VendorID", "type": "int"},
+        {"name": "tpep_pickup_datetime", "type": "timestamp"},
+        {"name": "tpep_dropoff_datetime", "type": "timestamp"},
+        {"name": "trip_distance", "type": "double"},
+        {"name": "fare_amount", "type": "double"},
+        {"name": "total_amount", "type": "double"},
+        {"name": "trip_date", "type": "date"},
+        {"name": "trip_duration_min", "type": "double"},
+        {"name": "pipeline_status", "type": "string"}
+      ],
+      "signals": {
+        "freshness": {
+          "hours_since_update": 72,
+          "expected_sla_hours": 24,
+          "notes": "staging_trips stopped 3 days before raw_trips' max date; ingestion metadata still looks recent, so the staleness is silent to naive freshness checks."
+        },
+        "quality": {"row_count": 225000, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.mart_daily_summary,PROD)",
+      "name": "mart_daily_summary",
+      "asset_type": "dataset",
+      "platform": "sqlite",
+      "schema_fields": [
+        {"name": "trip_date", "type": "date"},
+        {"name": "total_trips", "type": "int"},
+        {"name": "avg_fare", "type": "double"},
+        {"name": "avg_distance", "type": "double"}
+      ],
+      "signals": {
+        "freshness": {"hours_since_update": 6, "expected_sla_hours": 24},
+        "quality": {"row_count": 30, "null_rate": 0.0, "anomaly_count": 0}
+      }
+    },
+    {
+      "urn": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,nyc_taxi.fare_prediction,PROD)",
+      "name": "fare_prediction_model",
+      "asset_type": "mlModel",
+      "platform": "mlflow",
+      "schema_fields": []
+    },
+    {
+      "urn": "urn:li:dashboard:(looker,nyc_taxi.ops_overview)",
+      "name": "ops_overview_dashboard",
+      "asset_type": "dashboard",
+      "platform": "looker",
+      "schema_fields": []
+    }
+  ],
+  "lineage": [
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.raw_trips,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.staging_trips,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.staging_trips,PROD)", "downstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.mart_daily_summary,PROD)"},
+    {"upstream": "urn:li:dataset:(urn:li:dataPlatform:sqlite,nyc_taxi.mart_daily_summary,PROD)", "downstream": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,nyc_taxi.fare_prediction,PROD)"},
+    {"upstream": "urn:li:mlModel:(urn:li:dataPlatform:mlflow,nyc_taxi.fare_prediction,PROD)", "downstream": "urn:li:dashboard:(looker,nyc_taxi.ops_overview)"}
+  ]
+}

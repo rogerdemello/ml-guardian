@@ -1,0 +1,17 @@
+# ML Guardian backend dependencies
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+sqlmodel==0.0.22
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+httpx==0.28.1
+
+# Optional LLM orchestration (app runs without it via template fallback)
+google-genai>=1.0.0,<2.0.0
+
+# Optional: real DataHub integration via MCP (only needed when DATAHUB_MODE=mcp)
+# mcp-server-datahub>=0.5.0
+# datahub-agent-context>=0.1.0
+
+# Dev / test
+pytest==8.3.4
